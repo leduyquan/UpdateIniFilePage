@@ -168,8 +168,8 @@
                 $(thisAlert).find('.btn-hide-validate').remove();
             }
         })(jQuery);
-	</script>
-	<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.2/dist/FileSaver.min.js"></script>
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.2/dist/FileSaver.min.js"></script>
 
     <script >
         var objectFile = {};
@@ -184,25 +184,66 @@
             const dwellTime = data.get('dwell_time');
             
             if (cameraId && cameraDirection && cameraUrl && minDistance && dwellTime) {
-                const template = templateObject();
-				console.log(cameraId, cameraDirection,cameraUrl ,minDistance,dwellTime)
-                
+                let mainObject = {};
                 if (Object.keys(objectFile).length === 0 && objectFile.constructor === Object) {
-                    console.log('haha')
+                    const template = templateObject();
+                    template.app.camera_id = cameraId;
+                    template.app.camera_direction = cameraDirection;
+                    template.app.camera_url = cameraUrl;
+                    template.app.min_distance = minDistance;
+                    template.tracking.dwell_time = dwellTime;
+                    mainObject = template;
                 } else {
                     objectFile.app.camera_id = cameraId;
                     objectFile.app.camera_direction = cameraDirection;
                     objectFile.app.camera_url = cameraUrl;
                     objectFile.app.min_distance = minDistance;
                     objectFile.tracking.dwell_time = dwellTime;
+                    mainObject = objectFile;
                 }
-				
-				var blob = new Blob(["Hello, world!"], {type: "text/plain;charset=utf-8"});
-    			saveAs(blob, "confi.txt");
 
+                const content = convertINIObject(mainObject)
+                var blob = new Blob([content], {type: "text/plain;charset=utf-8"});
+                saveAs(blob, "1.ini");
             } else {
                 toastr['warning']('You need to fill in the necessary information!')
             }
+        }
+
+        function convertINIObject(data) {
+            let content = '';
+            const lineDown = getOS() === 'Linux' ? '\n' : '\r\n';
+            Object.keys(data).forEach(key => {
+                content += `[${key}]${lineDown}`;
+                Object.keys(data[key]).forEach(x => {
+                    content += `${x} = ${data[key][x]}${lineDown}`;
+                });
+                content += `${lineDown}`;
+            });
+            return content;
+        }
+
+        function getOS() {
+            var userAgent = window.navigator.userAgent,
+                platform = window.navigator.platform,
+                macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K'],
+                windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE'],
+                iosPlatforms = ['iPhone', 'iPad', 'iPod'],
+                os = null;
+
+            if (macosPlatforms.indexOf(platform) !== -1) {
+                os = 'Mac OS';
+            } else if (iosPlatforms.indexOf(platform) !== -1) {
+                os = 'iOS';
+            } else if (windowsPlatforms.indexOf(platform) !== -1) {
+                os = 'Windows';
+            } else if (/Android/.test(userAgent)) {
+                os = 'Android';
+            } else if (!os && /Linux/.test(platform)) {
+                os = 'Linux';
+            }
+
+            return os;
         }
 
         function templateObject() {
@@ -287,7 +328,6 @@
 
         function bindData(data) {
             const setData = (prop, value) => document.forms['configForm'][prop].value = value;
-            console.log(data)
             setData('camera_id', data.app?.camera_id);
             setData('camera_direction', data.app?.camera_direction);
             const cameraDirection = document.getElementsByClassName('select2-selection__rendered')[0];
